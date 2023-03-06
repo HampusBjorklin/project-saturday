@@ -50,13 +50,28 @@ def insert_security(db_cursor, record):
         print('Invalid insertion: Wrong datatype(s)')
         sys.exit(1)
 
-def initialize_quote_table(db_cursor):
-    pass
+def initialize_index_quote_table(db_cursor):
+    sql = """CREATE TABLE IF NOT EXISTS IndexQuotes(
+        DATE DATE PRIMARY KEY
+    )"""
+    db_cursor.execute(sql)
+
+def update_index_securities(db_cursor):
+    sql = """PRAGMA TABLE_INFO(IndexQuotes)"""
+    current_columns = [info[1] for info in list(db_cursor.execute(sql))]
+    sql = """SELECT ISIN FROM TickerInfo"""
+    columns_to_include = [info[0] for info in list(db_cursor.execute(sql)) if info[0] not in current_columns]
+    
+    for isin in columns_to_include:
+        sql = f"""ALTER TABLE IndexQuotes ADD COLUMN {isin} REAL"""
+        db_cursor.execute(sql)
 
 db_conn = sqlite3.connect('Quotes.db')
 db_cursor = db_conn.cursor()
 
 #initialize_database()
-insert_security(db_cursor, ['OMX STOCKHOLM PI', 'SE0000744195', 'market-index', 'SE', 18988])
-db_conn.commit()
-db_conn.close()
+#insert_security(db_cursor, ['OMX STOCKHOLM PI', 'SE0000744195', 'market-index', 'SE', 18988])
+#nitialize_index_quote_table(db_cursor)
+#update_index_securities(db_cursor)
+#db_conn.commit()
+#db_conn.close()

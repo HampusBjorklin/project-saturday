@@ -55,4 +55,31 @@ def collect_ohlcv(ticker_dict):
                 json.dump(ticks, f)
 
 
-collect_ohlcv(tickers)
+def ccollect_history_nasdaq(isin, start_date='2015-01-01', end_date=str(datetime.today().date)):
+    '''
+    url = 'https://www.nasdaqomxnordic.com/webproxy/DataFeedProxy.aspx'
+    xml = f"""<post>
+            <param name="Exchange" value="NMF"/>
+            <param name="SubSystem" value="History"/>
+            <param name="Action" value="GetDataSeries"/>
+            <param name="AppendIntraDay" value="no"/>
+            <param name="Instrument" value="{isin}"/>
+            <param name="FromDate" value="2023-01-01"/>
+            <param name="ToDate" value="2023-03-01"/>
+            <param name="hi__a" value="0,1,2,4,21,8,10,11,12"/>
+            <param name="ext_xslt" value="/nordicV3/hi_table.xsl"/>
+            <param name="ext_xslt_lang" value="sv"/>
+            <param name="ext_xslt_hiddenattrs" value=",ip,iv,"/>
+            <param name="ext_xslt_tableId" value="historicalTable"/>
+            <param name="app" value="/index/historiska_kurser"/>
+            </post>
+        """
+    response = requests.post(url, data=xml).text
+    '''
+    url = 'https://httpbin.org/headers'
+    s = requests.session()
+    text = s.get(url).text
+    print(text)
+
+
+ccollect_history_nasdaq('test')
