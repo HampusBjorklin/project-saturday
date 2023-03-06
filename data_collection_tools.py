@@ -55,31 +55,42 @@ def collect_ohlcv(ticker_dict):
                 json.dump(ticks, f)
 
 
-def ccollect_history_nasdaq(isin, start_date='2015-01-01', end_date=str(datetime.today().date)):
-    '''
-    url = 'https://www.nasdaqomxnordic.com/webproxy/DataFeedProxy.aspx'
-    xml = f"""<post>
-            <param name="Exchange" value="NMF"/>
-            <param name="SubSystem" value="History"/>
-            <param name="Action" value="GetDataSeries"/>
-            <param name="AppendIntraDay" value="no"/>
-            <param name="Instrument" value="{isin}"/>
-            <param name="FromDate" value="2023-01-01"/>
-            <param name="ToDate" value="2023-03-01"/>
-            <param name="hi__a" value="0,1,2,4,21,8,10,11,12"/>
-            <param name="ext_xslt" value="/nordicV3/hi_table.xsl"/>
-            <param name="ext_xslt_lang" value="sv"/>
-            <param name="ext_xslt_hiddenattrs" value=",ip,iv,"/>
-            <param name="ext_xslt_tableId" value="historicalTable"/>
-            <param name="app" value="/index/historiska_kurser"/>
-            </post>
-        """
-    response = requests.post(url, data=xml).text
-    '''
-    url = 'https://httpbin.org/headers'
-    s = requests.session()
-    text = s.get(url).text
-    print(text)
+def collect_closing_prices_nasdaq(isin, db_cursor, start_date: datetime.date = datetime(2002, 1, 1).date(), end_date: datetime.date = datetime.today().date()):
+    if end_date <= start_date:
+        print('Invalid choice of input dates...')
+        sys.exít(1)
+    sql = f"SELECT DATE FROM {isin.upper()}"
+    collected_dates = list(db_cursor.execute(sql))
+    start = str(start_date)
+    if len(collected_dates)>=1:
+        last_collected_date = collected_dates[-1][0]
+        next_date = datetime.strptime(last_collected_date, '%Y-%m-%d')+timedelta(days=1)
+        start = str(next_date.date())
+
+    end = str(end_date)
+    print(start)
+    print(end)
+    headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36'}
+    try:
+        url = f'https://www.nasdaqomxnordic.com/webproxy/DataFeedProxy.aspx?SubSystem=History&Action=GetChartData&inst.an=id%2Cnm%2Cfnm%2Cisin%2Ctp%2Cchp%2Cycp&FromDate={start}&ToDate={end}&json=true&timezone=CET&showAdjusted=false&app=%2Findex%2Fhistoriska_kurser-HistoryChart&DefaultDecimals=false&Instrument={isin}'
+        s = requests.session()
+        json = s.get(url, headers=headers).json()
+        data = json['data'][0]['chartData']['cp']
+    except:
+        print(f'Could not find data for ISIN {isin} between dates {start} -> {end}')
+        sys.exit(1)
+
+    for d in data:
+        day = datetime.fromtimestamp(d[0]/1000).date()
+        close = d[1]
+        sql = f"""INSERT OR REPLACE INTO {isin.upper()} 
+                  (DATE, CLOSING_PRICE) 
+                  VALUES("{day}", {close});"""
+        db_cursor.execute(sql)
 
 
-ccollect_history_nasdaq('test')
+db_conn = sqlite3.connect('Quotes.db')
+db_cursor = db_conn.cursor()
+collect_closing_prices_nasdaq('SE0000744195', db_cursor)
+db_conn.commit()
+db_conn.close()

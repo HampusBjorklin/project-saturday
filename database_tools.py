@@ -43,18 +43,26 @@ def insert_security(db_cursor, record):
     if checksum == 5:
         sql = f"""INSERT OR REPLACE INTO TickerInfo 
                   (NAME, ISIN, TYPE, COUNTRY, AVANZA_ID) 
-                  VALUES("{record[0]}", "{record[1]}", "{record[2].lower().replace(' ', '-')}", "{record[3]}", {record[4]});"""
+                  VALUES("{record[0]}", "{record[1].upper()}", "{record[2].lower().replace(' ', '-')}", "{record[3]}", {record[4]});"""
         db_cursor.execute(sql)
         print('Succesfully added security!')
     else:
         print('Invalid insertion: Wrong datatype(s)')
         sys.exit(1)
 
+    sql = f"""CREATE TABLE IF NOT EXISTS {record[1].upper()}(
+        DATE DATE PRIMARY KEY,
+        CLOSING_PRICE REAL
+    )"""
+    db_cursor.execute(sql)
+''' // Prob. not needed...
+
 def initialize_index_quote_table(db_cursor):
-    sql = """CREATE TABLE IF NOT EXISTS IndexQuotes(
+    sql = """CREATE TABLE IF NOT EXISTS (
         DATE DATE PRIMARY KEY
     )"""
     db_cursor.execute(sql)
+
 
 def update_index_securities(db_cursor):
     sql = """PRAGMA TABLE_INFO(IndexQuotes)"""
@@ -69,9 +77,13 @@ def update_index_securities(db_cursor):
 db_conn = sqlite3.connect('Quotes.db')
 db_cursor = db_conn.cursor()
 
-#initialize_database()
-#insert_security(db_cursor, ['OMX STOCKHOLM PI', 'SE0000744195', 'market-index', 'SE', 18988])
+'''
+
+initialize_database()
+db_conn = sqlite3.connect('Quotes.db')
+db_cursor = db_conn.cursor()
+insert_security(db_cursor, ['OMX STOCKHOLM PI', 'SE0000744195', 'market-index', 'SE', 18988])
 #nitialize_index_quote_table(db_cursor)
 #update_index_securities(db_cursor)
-#db_conn.commit()
-#db_conn.close()
+db_conn.commit()
+db_conn.close()
